@@ -62,6 +62,7 @@ laguna-onpremises-poc/
 │   ├── last_etl_metrics.json    # Tempo, vazão e colunas do teste preliminar de ETL
 │   ├── validation_report.json   # Relatório de unicidade de IDs e esquema Parquet (51 colunas)
 │   └── sample_analytics.json    # Saída das 3 consultas agregadas em Spark SQL
+├── LICENSE                      # Licença aberta Apache License 2.0
 └── requirements.txt             # Dependências Python dos scripts auxiliares
 ```
 
@@ -141,3 +142,4 @@ Artefato técnico integrante do Trabalho de Conclusão de Curso 1 (TCC 1) em Eng
 - **Autor:** Diego Carlito Rodrigues de Souza
 - **Orientador:** Prof. Dr. Daniel Sundfeld Lima
 - **Ano:** 2026
+- **Licença:** distribuído sob a licença aberta [Apache License 2.0](LICENSE), alinhada ao licenciamento do Apache Spark, Apache Hadoop e SeaweedFS.
