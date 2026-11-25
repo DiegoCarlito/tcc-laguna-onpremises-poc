@@ -67,6 +67,8 @@ laguna-onpremises-poc/
 
 ## Execução Rápida
 
+> **Pré-requisitos no hospedeiro:** Docker Engine, Docker Compose v2 e Python `3.8+` (apenas biblioteca padrão para `capture_host_info.py` e `run_benchmark.py`). As bibliotecas externas listadas em `requirements.txt` (`boto3` e `requests`) são instaladas automaticamente dentro da imagem `laguna-spark` durante o `docker compose up -d --build`. Caso altere `S3_ACCESS_KEY` ou `S3_SECRET_KEY` no `.env`, atualize também `docker/seaweedfs/s3.json`.
+
 1. Configure o ambiente local:
    ```bash
    cp .env.example .env
@@ -124,10 +126,18 @@ laguna-onpremises-poc/
 ## Evidência de Verificação Inicial (`results/`)
 
 - **Smoke test S3A (`smoke_test_s3a.py`):** escrita e leitura Parquet em `s3a://clean-data/_smoke_test/parquet_check` concluídas em `8,129 s` (`3` registros) nos dois *Workers*.
-- **Ingestão (`results/subset_manifest.json`):** download de `2` partições do *snapshot* `2026-10-14` (`693` registros; `501,24 KB` comprimidos; `4,755 MiB` descomprimidos) para `s3a://raw-data/works/subset` em `3,383 s`.
-- **ETL e validação (`results/last_etl_metrics.json` + `results/validation_report.json`):** materialização Parquet (Snappy) em `s3a://clean-data/works/clean` em `12,274 s` (`56,46 registros/s`; `0,387 MB/s`), preservando `693` registros únicos (`100%` de unicidade de `id`) e `51` colunas de nível superior.
+- **Ingestão (`results/subset_manifest.json`):** download de `2` partições do *snapshot* `2026-10-14` (`693` registros; `489,49 KiB` comprimidos; `4,755 MiB` descomprimidos) para `s3a://raw-data/works/subset` em `3,383 s`.
+- **ETL e validação (`results/last_etl_metrics.json` + `results/validation_report.json`):** materialização Parquet (Snappy) em `s3a://clean-data/works/clean` em `12,274 s` (`56,46 registros/s`; `0,387 MiB/s`), preservando `693` registros únicos (`100%` de unicidade de `id`) e `51` colunas de nível superior.
 - **Consulta analítica (`results/sample_analytics.json`):** agregações Spark SQL sobre `s3a://clean-data/works/clean` (distribuição por `publication_year`, `type` e `primary_location.source` com soma de `cited_by_count`) concluídas em `17,482 s` (`632` artigos, `41` livros e demais tipologias).
 
 ## Observação Metodológica
 
 As transformações presentes em `jobs/rules.py` correspondem a uma estrutura modular neutra inicial para validação técnica do conector S3A e do fluxo de ETL. As regras definitivas de higienização e particionamento serão alinhadas ao inventário oficial dos *scripts* do Projeto Laguna na etapa de execução do TCC 2.
+
+## Contexto Acadêmico
+
+Artefato técnico integrante do Trabalho de Conclusão de Curso 1 (TCC 1) em Engenharia de Software da Universidade de Brasília (UnB / FCTE-FGA):
+- **Título:** *Prova de Conceito de Processamento Local de Dados OpenAlex no Projeto Laguna com Apache Spark*
+- **Autor:** Diego Carlito Rodrigues de Souza
+- **Orientador:** Prof. Dr. Daniel Sundfeld Lima
+- **Ano:** 2026
