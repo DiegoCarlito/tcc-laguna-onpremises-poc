@@ -42,7 +42,7 @@ services:
     command:
       - bash
       - -c
-      - "mkdir -p /opt/laguna/results /opt/laguna/spark-work/worker-1 /opt/laguna/spark-work/worker-2 && chmod -R 0777 /opt/laguna/results /opt/laguna/spark-work && python3 /opt/laguna/scripts/init_buckets.py"
+      - "mkdir -p /opt/laguna/results /opt/laguna/spark-work/worker-1 /opt/laguna/spark-work/worker-2 && chown -R spark:spark /opt/laguna/spark-work && chmod 1777 /opt/laguna/results && python3 /opt/laguna/scripts/init_buckets.py"
     restart: "no"
     networks:
       - laguna-net
@@ -60,8 +60,8 @@ services:
       SPARK_MASTER_HOST: spark-master
       SPARK_MASTER_PORT: "7077"
       SPARK_MASTER_WEBUI_PORT: "8080"
-      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-128m}
-      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:-}
+      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-96m}
+      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:--XX:+UseSerialGC -XX:MaxMetaspaceSize=128m}
     cpus: ${SPARK_MASTER_CPUS:-1.0}
     mem_limit: ${SPARK_MASTER_MEM_LIMIT:-512m}
     networks:
@@ -77,9 +77,9 @@ services:
       spark://spark-master:7077
     environment:
       SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-2}
-      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-1g}
-      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-128m}
-      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:-}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-640m}
+      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-96m}
+      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:--XX:+UseSerialGC -XX:MaxMetaspaceSize=128m}
       SPARK_LOCAL_DIRS: /opt/spark/work-local
     volumes:
       - ./volumes/spark-work/worker-1:/opt/spark/work-local
@@ -98,9 +98,9 @@ services:
       spark://spark-master:7077
     environment:
       SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-2}
-      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-1g}
-      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-128m}
-      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:-}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-640m}
+      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-96m}
+      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:--XX:+UseSerialGC -XX:MaxMetaspaceSize=128m}
       SPARK_LOCAL_DIRS: /opt/spark/work-local
     volumes:
       - ./volumes/spark-work/worker-2:/opt/spark/work-local
