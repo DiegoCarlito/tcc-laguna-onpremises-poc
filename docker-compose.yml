@@ -174,7 +174,7 @@ services:
       SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-512m}
       SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:-512m}
     ports:
-      - "8888:8888"
+      - "127.0.0.1:8888:8888"
     volumes:
       - ./notebooks:/opt/laguna/notebooks
       - ./jobs:/opt/laguna/jobs:ro

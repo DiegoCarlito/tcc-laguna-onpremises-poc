@@ -124,13 +124,13 @@ laguna-onpremises-poc/
 
 ### Encerramento e Limpeza
 
-- Parar os contêineres preservando os *buckets* S3 e volumes locais:
+- Parar os contêineres preservando os *buckets* S3 e volumes locais (inclui o perfil opcional `notebook`, caso tenha sido iniciado):
   ```bash
-  docker compose stop
+  docker compose --profile notebook stop
   ```
-- Remover contêineres e rede (mantendo os diretórios em `./volumes`):
+- Remover todos os contêineres e a rede interna (mantendo os diretórios em `./volumes`):
   ```bash
-  docker compose down
+  docker compose --profile notebook down
   ```
 
 ## Evidência de Verificação Inicial (`results/`)
