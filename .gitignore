@@ -11,12 +11,13 @@ results/*.csv
 *.json.gz
 *.csv
 
-# Python
+# Python e Jupyter
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 .pytest_cache/
+.ipynb_checkpoints/
 
 # Logs e arquivos temporários
 *.log

@@ -31,15 +31,16 @@ Avaliar a viabilidade técnica de reproduzir localmente, em uma única máquina 
 | `spark-worker-2` | Nó de execução (*Executor* 2) | `2.0` | `1536m` | `WORKER=640m`, `EXECUTOR=512m`, `DAEMON=96m` |
 | **Total** | **5 serviços de longa duração** | **`8.0`** | **`5,5 GiB`** | **73,3% dos 7,5 GiB físicos (< 80%)** |
 
-> **Decisão de engenharia (execução via `spark-submit` vs. Jupyter Notebook):** os *pipelines* e *benchmarks* são executados por *scripts* Python modulares submetidos via `spark-submit` (sem servidor Jupyter residente), reproduzindo o modelo de execução em lote não interativo (`AWS Batch` / `EMR`) e evitando sobrecarga adicional de memória RAM ou retenção de sessão Spark entre repetições experimentais.
+> **Decisão de engenharia (execução via `spark-submit` vs. Jupyter Notebook):** os *pipelines* de ETL e *benchmarks* são executados por *scripts* Python modulares submetidos via `spark-submit` (sem servidor Jupyter residente no perfil padrão), reproduzindo o modelo de execução em lote não interativo (`AWS Batch` / `EMR`) e evitando sobrecarga de memória RAM entre repetições experimentais. Complementarmente, para demonstrar a camada de consumo analítico interativo (análoga ao `Amazon Athena` / `JupyterLab`), o repositório inclui o caderno pré-executado [`notebooks/exploracao_clean_data.ipynb`](notebooks/exploracao_clean_data.ipynb) e um serviço opcional ativável sob demanda (`--profile notebook`).
 
 ## Estrutura do Repositório
 
 ```text
 laguna-onpremises-poc/
 ├── .env.example                 # Template calibrado de variáveis e limites de CPU/RAM
-├── docker-compose.yml           # Orquestração: SeaweedFS, Spark Master/Workers e Driver
+├── docker-compose.yml           # Orquestração: SeaweedFS, Spark Master/Workers, Driver e perfil notebook
 ├── docker/
+│   ├── notebook/                # Imagem opcional JupyterLab (ativada apenas com --profile notebook)
 │   ├── seaweedfs/s3.json        # Credenciais locais do gateway S3
 │   └── spark/
 │       ├── Dockerfile           # Imagem PySpark 3.5.3 + hadoop-aws 3.3.4 (S3A)
@@ -51,6 +52,8 @@ laguna-onpremises-poc/
 │   ├── etl_works.py             # Pipeline ETL PySpark cronometrado com tipagem MapType
 │   ├── validate_output.py       # Conferência funcional de saídas (contagem, IDs, esquema)
 │   └── sample_analytics.py      # Consulta analítica de exemplo em Spark SQL (clean-data)
+├── notebooks/
+│   └── exploracao_clean_data.ipynb # Exploração visual (esquema, metadados FAIR, SQL e gráficos)
 ├── scripts/
 │   ├── init_buckets.py          # Inicialização idempotente de raw-data e clean-data
 │   ├── ingest_openalex_subset.py# Ingestão em streaming de recorte JSONL.gz (manifest.json)
@@ -112,6 +115,12 @@ laguna-onpremises-poc/
    python3 scripts/run_benchmark.py --runs 3 --output results/benchmark_runs.csv
    ```
    O arquivo CSV consolidado exporta as colunas `run_id`, `status`, `execution_time_s`, `output_records`, `throughput_rec_s`, `throughput_mb_s`, `peak_ram_gb`, `peak_ram_pct`, `avg_cpu_pct`, `peak_cpu_pct` e `disk_io_mb_s` (adicione `--drop-caches` quando executado como `root` para descartar também o *page cache* do sistema operacional entre repetições).
+8. *(Opcional)* Para inspecionar visualmente os resultados e gráficos no navegador via JupyterLab (sem impactar o perfil padrão de *benchmark*):
+   ```bash
+   docker compose --profile notebook up -d --build
+   # Acesse: http://localhost:8888/lab/tree/exploracao_clean_data.ipynb?token=laguna-poc
+   ```
+   O caderno [`notebooks/exploracao_clean_data.ipynb`](notebooks/exploracao_clean_data.ipynb) já se encontra versionado com todas as tabelas e gráficos renderizados diretamente no GitHub.
 
 ### Encerramento e Limpeza
 

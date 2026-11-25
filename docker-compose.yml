@@ -142,6 +142,48 @@ services:
     networks:
       - laguna-net
 
+  spark-notebook:
+    profiles: ["notebook"]
+    build:
+      context: .
+      dockerfile: docker/notebook/Dockerfile
+    image: laguna-spark-notebook:3.5.3-s3a
+    container_name: laguna-spark-notebook
+    hostname: spark-notebook
+    depends_on:
+      - spark-master
+      - seaweedfs
+    command:
+      - jupyter
+      - lab
+      - --ip=0.0.0.0
+      - --port=8888
+      - --no-browser
+      - --ServerApp.token=laguna-poc
+      - --ServerApp.root_dir=/opt/laguna/notebooks
+    environment:
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://seaweedfs:8333}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-laguna_poc_access}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-laguna_poc_secret}
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW:-raw-data}
+      S3_BUCKET_CLEAN: ${S3_BUCKET_CLEAN:-clean-data}
+      SPARK_MASTER_URL: ${SPARK_MASTER_URL:-spark://spark-master:7077}
+      SPARK_DRIVER_HOST: spark-notebook
+      SPARK_DRIVER_PORT: "7088"
+      SPARK_BLOCKMANAGER_PORT: "7089"
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-512m}
+      SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:-512m}
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/opt/laguna/notebooks
+      - ./jobs:/opt/laguna/jobs:ro
+      - ./results:/opt/laguna/results
+    cpus: 1.0
+    mem_limit: 1024m
+    networks:
+      - laguna-net
+
 networks:
   laguna-net:
     driver: bridge
