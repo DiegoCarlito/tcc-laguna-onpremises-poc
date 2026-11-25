@@ -150,6 +150,7 @@ def main() -> int:
             "execution_time_s": elapsed_s,
             "output_records": m["output_records"],
             "throughput_rec_s": m["throughput_records_per_second"],
+            "throughput_mb_s": m.get("throughput_mb_per_second"),
             "peak_ram_gb": peak_mem_gb,
             "avg_cpu_pct": avg_cpu_pct,
             "peak_cpu_pct": peak_cpu_pct,
@@ -158,7 +159,8 @@ def main() -> int:
 
     fieldnames = [
         "run_id", "status", "execution_time_s", "output_records",
-        "throughput_rec_s", "peak_ram_gb", "avg_cpu_pct", "peak_cpu_pct", "disk_io_mb_s",
+        "throughput_rec_s", "throughput_mb_s", "peak_ram_gb", "avg_cpu_pct",
+        "peak_cpu_pct", "disk_io_mb_s",
     ]
     with open(args.output, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
