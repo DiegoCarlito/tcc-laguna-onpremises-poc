@@ -36,7 +36,8 @@ laguna-onpremises-poc/
 │   ├── smoke_test_s3a.py        # Teste mínimo de conectividade Spark <-> S3A
 │   ├── rules.py                 # Módulo neutro de transformação (a alinhar ao inventário Laguna)
 │   ├── etl_works.py             # Pipeline ETL PySpark cronometrado com tipagem MapType
-│   └── validate_output.py       # Conferência funcional de saídas (contagem, IDs, esquema)
+│   ├── validate_output.py       # Conferência funcional de saídas (contagem, IDs, esquema)
+│   └── sample_analytics.py      # Consulta analítica de exemplo em Spark SQL (clean-data)
 ├── scripts/
 │   ├── init_buckets.py          # Inicialização idempotente de raw-data e clean-data
 │   ├── ingest_openalex_subset.py# Ingestão de recorte JSONL.gz (data/jsonl/works/manifest.json)
@@ -79,6 +80,10 @@ laguna-onpremises-poc/
    docker compose exec -T spark-driver /opt/spark/bin/spark-submit \
      --driver-memory 512m --executor-memory 512m /opt/laguna/jobs/validate_output.py \
      --clean-prefix works/clean --report-out /opt/laguna/results/validation_report.json
+
+   docker compose exec -T spark-driver /opt/spark/bin/spark-submit \
+     --driver-memory 512m --executor-memory 512m /opt/laguna/jobs/sample_analytics.py \
+     --clean-prefix works/clean --report-out /opt/laguna/results/sample_analytics.json
    ```
 7. Execute o protocolo de benchmark com repetições:
    ```bash
