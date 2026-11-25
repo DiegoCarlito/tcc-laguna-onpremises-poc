@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Ingere um recorte controlado da entidade Works do snapshot público da OpenAlex
-para o bucket raw-data do armazenamento S3 local, registrando manifesto de
-reprodutibilidade (data, objetos, SHA-256, bytes comprimidos e tempo de download).
+para o bucket raw-data do armazenamento S3 local em modo streaming (chunks),
+evitando consumo excessivo de memória RAM em partições grandes e registrando
+manifesto de reprodutibilidade (data, objetos, SHA-256, bytes e tempo).
 """
 import argparse
 import datetime
@@ -11,12 +12,14 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 import time
 import boto3
 import requests
 
 OPENALEX_MANIFEST_URL = "https://openalex.s3.amazonaws.com/data/jsonl/works/manifest.json"
 OPENALEX_BASE_HTTPS = "https://openalex.s3.amazonaws.com/"
+CHUNK_SIZE = 1024 * 1024  # 1 MiB
 
 
 def s3_uri_to_https(uri: str) -> str:
@@ -36,6 +39,31 @@ def fetch_manifest() -> dict:
     resp = requests.get(OPENALEX_MANIFEST_URL, timeout=60)
     resp.raise_for_status()
     return resp.json()
+
+
+def stream_download_and_inspect(url: str, tmp_path: str) -> tuple[int, int, str]:
+    """Baixa o arquivo .gz em chunks para disco, calculando SHA-256 e tamanho descomprimido."""
+    hasher = hashlib.sha256()
+    compressed_bytes = 0
+    with requests.get(url, stream=True, timeout=300) as r:
+        r.raise_for_status()
+        with open(tmp_path, "wb") as out_f:
+            for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+                if not chunk:
+                    continue
+                out_f.write(chunk)
+                hasher.update(chunk)
+                compressed_bytes += len(chunk)
+
+    uncompressed_bytes = 0
+    with gzip.open(tmp_path, "rb") as gz_f:
+        while True:
+            decompressed_chunk = gz_f.read(CHUNK_SIZE)
+            if not decompressed_chunk:
+                break
+            uncompressed_bytes += len(decompressed_chunk)
+
+    return compressed_bytes, uncompressed_bytes, hasher.hexdigest()
 
 
 def main() -> int:
@@ -78,18 +106,22 @@ def main() -> int:
         rel_name = extract_relative_key(entry["url"])
         dest_key = f"{args.prefix}/{rel_name}"
 
-        print(f"[ingest] ({idx}/{len(selected)}) Baixando {src_url} ...")
-        r = requests.get(src_url, timeout=300)
-        r.raise_for_status()
-        payload = r.content
-        sha256 = hashlib.sha256(payload).hexdigest()
-        uncompressed_bytes = len(gzip.decompress(payload))
+        print(f"[ingest] ({idx}/{len(selected)}) Baixando em streaming {src_url} ...")
+        fd, tmp_path = tempfile.mkstemp(suffix=".gz", prefix="openalex_part_")
+        os.close(fd)
+        try:
+            compressed_bytes, uncompressed_bytes, sha256 = stream_download_and_inspect(
+                src_url, tmp_path
+            )
+            s3.upload_file(tmp_path, bucket_raw, dest_key)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
-        s3.put_object(Bucket=bucket_raw, Key=dest_key, Body=payload)
         ingested.append({
             "source_url": src_url,
             "s3_key": dest_key,
-            "compressed_bytes": len(payload),
+            "compressed_bytes": compressed_bytes,
             "uncompressed_bytes": uncompressed_bytes,
             "record_count_manifest": entry.get("meta", {}).get("record_count"),
             "sha256": sha256,
