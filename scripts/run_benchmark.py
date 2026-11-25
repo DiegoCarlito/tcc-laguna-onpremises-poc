@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Orquestra execuções repetidas do pipeline ETL na PoC, amostrando uso de CPU (%),
-pico de memória RAM (GB e %) e I/O de disco dos contêineres via `docker stats`,
+Orquestra execuções repetidas do pipeline ETL na PoC, limpando artefatos
+de saída/temporários entre rodadas, amostrando uso de CPU (%), pico de
+memória RAM (GB e %) e I/O de disco dos contêineres via `docker stats`,
 e consolidando todas as métricas em CSV para análise experimental.
 """
 import argparse
@@ -22,6 +23,19 @@ CONTAINERS = [
 ]
 
 
+def get_host_total_ram_gib() -> float:
+    """Lê a capacidade física total de RAM do hospedeiro em GiB via /proc/meminfo."""
+    try:
+        with open("/proc/meminfo", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("MemTotal:"):
+                    kib = float(line.split()[1])
+                    return kib / (1024.0 * 1024.0)
+    except OSError:
+        pass
+    return 0.0
+
+
 def parse_size_to_mib(val: str) -> float:
     m = re.match(r"([\d.]+)\s*([KMGTP]?i?B)", val.strip(), re.I)
     if not m:
@@ -38,6 +52,44 @@ def parse_size_to_mib(val: str) -> float:
         "gib": 1024.0,
     }
     return num * factors.get(unit, 0.0)
+
+
+def reset_between_runs(output_prefix: str, drop_os_caches: bool) -> None:
+    """Remove a saída anterior no bucket clean-data, limpa diretórios de shuffle e opcionalmente descarta page cache."""
+    cleanup_code = (
+        "import os, boto3; "
+        "s3 = boto3.client('s3', endpoint_url=os.environ['S3_ENDPOINT'], "
+        "aws_access_key_id=os.environ['S3_ACCESS_KEY'], "
+        "aws_secret_access_key=os.environ['S3_SECRET_KEY'], region_name='us-east-1'); "
+        "bucket = os.environ['S3_BUCKET_CLEAN']; "
+        f"prefix = {output_prefix!r}.strip('/') + '/'; "
+        "paginator = s3.get_paginator('list_objects_v2'); "
+        "keys = [{'Key': o['Key']} for p in paginator.paginate(Bucket=bucket, Prefix=prefix) for o in p.get('Contents', [])]; "
+        "[s3.delete_objects(Bucket=bucket, Delete={'Objects': keys[i:i+1000]}) for i in range(0, len(keys), 1000)]"
+    )
+    subprocess.run(
+        ["docker", "compose", "exec", "-T", "spark-driver", "python3", "-c", cleanup_code],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    for worker in ("spark-worker-1", "spark-worker-2"):
+        subprocess.run(
+            [
+                "docker", "compose", "exec", "-T", worker,
+                "bash", "-c", "rm -rf /opt/spark/work-local/blockmgr-* /opt/spark/work-local/spark-*",
+            ],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    if drop_os_caches:
+        subprocess.run(["sync"], check=False)
+        try:
+            with open("/proc/sys/vm/drop_caches", "w", encoding="utf-8") as f:
+                f.write("3\n")
+        except PermissionError:
+            print("[benchmark] Aviso: sem privilégio root para limpar /proc/sys/vm/drop_caches; seguindo apenas com limpeza de sessão/artefatos.")
 
 
 def sample_docker_stats(stop_evt: threading.Event, samples: list) -> None:
@@ -86,13 +138,21 @@ def main() -> int:
     parser.add_argument("--input-prefix", default="works/subset")
     parser.add_argument("--output-prefix", default="works/clean")
     parser.add_argument("--output", default="results/benchmark_runs.csv")
+    parser.add_argument(
+        "--drop-caches",
+        action="store_true",
+        help="Descarta page cache do kernel Linux entre rodadas (requer execução como root)",
+    )
     args = parser.parse_args()
 
+    host_ram_gib = get_host_total_ram_gib()
     os.makedirs(os.path.dirname(args.output), exist_ok=True)
     rows = []
 
     for run_id in range(1, args.runs + 1):
-        print(f"[benchmark] Iniciando repetição {run_id}/{args.runs} ...")
+        print(f"[benchmark] Preparando e iniciando repetição {run_id}/{args.runs} ...")
+        reset_between_runs(args.output_prefix, args.drop_caches)
+
         samples = []
         stop_evt = threading.Event()
         monitor = threading.Thread(target=sample_docker_stats, args=(stop_evt, samples), daemon=True)
@@ -130,6 +190,7 @@ def main() -> int:
             m = json.load(f)
 
         peak_mem_gb = round(max((s["mem_gb"] for s in samples), default=0.0), 3)
+        peak_ram_pct = round((peak_mem_gb / host_ram_gib) * 100.0, 2) if host_ram_gib > 0 else 0.0
         avg_cpu_pct = round(
             sum(s["cpu_pct_sum"] for s in samples) / len(samples), 2
         ) if samples else 0.0
@@ -152,6 +213,7 @@ def main() -> int:
             "throughput_rec_s": m["throughput_records_per_second"],
             "throughput_mb_s": m.get("throughput_mb_per_second"),
             "peak_ram_gb": peak_mem_gb,
+            "peak_ram_pct": peak_ram_pct,
             "avg_cpu_pct": avg_cpu_pct,
             "peak_cpu_pct": peak_cpu_pct,
             "disk_io_mb_s": disk_io_mb_s,
@@ -159,8 +221,8 @@ def main() -> int:
 
     fieldnames = [
         "run_id", "status", "execution_time_s", "output_records",
-        "throughput_rec_s", "throughput_mb_s", "peak_ram_gb", "avg_cpu_pct",
-        "peak_cpu_pct", "disk_io_mb_s",
+        "throughput_rec_s", "throughput_mb_s", "peak_ram_gb", "peak_ram_pct",
+        "avg_cpu_pct", "peak_cpu_pct", "disk_io_mb_s",
     ]
     with open(args.output, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
