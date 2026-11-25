@@ -25,6 +25,8 @@ def main() -> int:
     parser.add_argument("--output", default="results/host_manifest.json")
     args = parser.parse_args()
 
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     manifest = {
         "captured_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "os": {
@@ -36,18 +38,26 @@ def main() -> int:
         },
         "hardware": {
             "cpu_model": run_cmd(["bash", "-c", "lscpu | grep -m1 'Model name' | cut -d: -f2"]),
+            "cpu_physical_cores": run_cmd([
+                "bash", "-c",
+                "lscpu | awk -F: '/^Core\\(s\\) per socket:/ {c=$2} /^Socket\\(s\\):/ {s=$2} END {gsub(/ /,\"\",c); gsub(/ /,\"\",s); print c*s}'"
+            ]),
             "cpu_logical_cores": os.cpu_count(),
             "memory_total": run_cmd(["bash", "-c", "free -h | awk '/^Mem:/ {print $2}'"]),
-            "block_devices": run_cmd(["lsblk", "-d", "-o", "NAME,SIZE,ROTA,TRAN,MODEL"]),
+            "workspace_filesystem": run_cmd(["df", "-Th", repo_root]),
+            "block_devices": run_cmd(["lsblk", "-d", "-e", "7", "-o", "NAME,SIZE,ROTA,TRAN,MODEL"]),
         },
         "runtime": {
             "docker_version": run_cmd(["docker", "--version"]),
             "compose_version": run_cmd(["docker", "compose", "version"]),
-            "git_commit": run_cmd(["git", "rev-parse", "HEAD"]),
-            "image_digests": run_cmd([
-                "docker", "images", "--digests",
-                "--format", "{{.Repository}}:{{.Tag}} {{.Digest}}"
-            ]).splitlines(),
+            "git_commit": run_cmd(["git", "-C", repo_root, "rev-parse", "HEAD"]),
+            "image_digests": [
+                line for line in run_cmd([
+                    "docker", "images", "--digests",
+                    "--format", "{{.Repository}}:{{.Tag}} {{.Digest}}"
+                ]).splitlines()
+                if any(k in line for k in ("spark", "seaweedfs", "laguna"))
+            ],
         },
     }
 
