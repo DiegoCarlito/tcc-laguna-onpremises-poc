@@ -36,7 +36,7 @@ Avaliar a viabilidade técnica de reproduzir localmente, em uma única máquina 
 ## Estrutura do Repositório
 
 ```text
-laguna-onpremises-poc/
+tcc-laguna-onpremises-poc/
 ├── .env.example                 # Template calibrado de variáveis e limites de CPU/RAM
 ├── docker-compose.yml           # Orquestração: SeaweedFS, Spark Master/Workers, Driver e perfil notebook
 ├── docker/
