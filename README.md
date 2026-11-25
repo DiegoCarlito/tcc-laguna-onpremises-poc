@@ -146,7 +146,7 @@ As transformações presentes em `jobs/rules.py` correspondem a uma estrutura mo
 
 ## Contexto Acadêmico
 
-Artefato técnico integrante do Trabalho de Conclusão de Curso 1 (TCC 1) em Engenharia de Software da Universidade de Brasília (UnB / FCTE-FGA):
+Artefato técnico integrante do Trabalho de Conclusão de Curso 1 (TCC 1) em Engenharia de Software da Universidade de Brasília (UnB / FCTE):
 - **Título:** *Prova de Conceito de Processamento Local de Dados OpenAlex no Projeto Laguna com Apache Spark*
 - **Autor:** Diego Carlito Rodrigues de Souza
 - **Orientador:** Prof. Dr. Daniel Sundfeld Lima
