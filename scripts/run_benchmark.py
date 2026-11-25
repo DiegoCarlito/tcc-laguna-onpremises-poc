@@ -101,10 +101,15 @@ def main() -> int:
         metrics_file = f"/opt/laguna/results/etl_run_{run_id}.json"
         host_metrics_file = f"results/etl_run_{run_id}.json"
 
+        driver_mem = os.environ.get("SPARK_DRIVER_MEMORY", "512m")
+        executor_mem = os.environ.get("SPARK_EXECUTOR_MEMORY", "512m")
+
         res = subprocess.run(
             [
                 "docker", "compose", "exec", "-T", "spark-driver",
                 "/opt/spark/bin/spark-submit",
+                "--driver-memory", driver_mem,
+                "--executor-memory", executor_mem,
                 "/opt/laguna/jobs/etl_works.py",
                 "--input-prefix", args.input_prefix,
                 "--output-prefix", args.output_prefix,

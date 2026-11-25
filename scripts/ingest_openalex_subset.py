@@ -6,6 +6,7 @@ reprodutibilidade (data, objetos, SHA-256, bytes comprimidos e tempo de download
 """
 import argparse
 import datetime
+import gzip
 import hashlib
 import json
 import os
@@ -14,7 +15,7 @@ import time
 import boto3
 import requests
 
-OPENALEX_MANIFEST_URL = "https://openalex.s3.amazonaws.com/data/works/manifest"
+OPENALEX_MANIFEST_URL = "https://openalex.s3.amazonaws.com/data/jsonl/works/manifest.json"
 OPENALEX_BASE_HTTPS = "https://openalex.s3.amazonaws.com/"
 
 
@@ -22,6 +23,13 @@ def s3_uri_to_https(uri: str) -> str:
     if uri.startswith("s3://openalex/"):
         return OPENALEX_BASE_HTTPS + uri[len("s3://openalex/"):]
     return uri
+
+
+def extract_relative_key(uri: str) -> str:
+    for marker in ("data/jsonl/works/", "data/works/"):
+        if marker in uri:
+            return uri.split(marker, 1)[-1]
+    return os.path.basename(uri)
 
 
 def fetch_manifest() -> dict:
@@ -33,6 +41,7 @@ def fetch_manifest() -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Ingestão controlada de recorte Works da OpenAlex")
     parser.add_argument("--limit", type=int, default=1, help="Número de partições .gz a baixar")
+    parser.add_argument("--min-records", type=int, default=1, help="Mínimo de registros por partição selecionada")
     parser.add_argument("--prefix", default="works/subset", help="Prefixo de destino no bucket raw-data")
     parser.add_argument("--output-manifest", default="/opt/laguna/results/subset_manifest.json")
     args = parser.parse_args()
@@ -52,7 +61,12 @@ def main() -> int:
 
     print(f"[ingest] Baixando manifesto oficial: {OPENALEX_MANIFEST_URL}")
     manifest = fetch_manifest()
-    entries = manifest.get("entries", [])
+    raw_items = manifest.get("files", manifest.get("entries", []))
+    entries = [
+        e for e in raw_items
+        if e.get("meta", {}).get("content_length", 0) > 0
+        and e.get("meta", {}).get("record_count", 0) >= args.min_records
+    ]
     # Ordena por tamanho crescente para testes progressivos reprodutíveis
     entries_sorted = sorted(entries, key=lambda e: e.get("meta", {}).get("content_length", 0))
     selected = entries_sorted[: args.limit]
@@ -61,7 +75,7 @@ def main() -> int:
     ingested = []
     for idx, entry in enumerate(selected, 1):
         src_url = s3_uri_to_https(entry["url"])
-        rel_name = entry["url"].split("data/works/", 1)[-1]
+        rel_name = extract_relative_key(entry["url"])
         dest_key = f"{args.prefix}/{rel_name}"
 
         print(f"[ingest] ({idx}/{len(selected)}) Baixando {src_url} ...")
@@ -69,12 +83,14 @@ def main() -> int:
         r.raise_for_status()
         payload = r.content
         sha256 = hashlib.sha256(payload).hexdigest()
+        uncompressed_bytes = len(gzip.decompress(payload))
 
         s3.put_object(Bucket=bucket_raw, Key=dest_key, Body=payload)
         ingested.append({
             "source_url": src_url,
             "s3_key": dest_key,
             "compressed_bytes": len(payload),
+            "uncompressed_bytes": uncompressed_bytes,
             "record_count_manifest": entry.get("meta", {}).get("record_count"),
             "sha256": sha256,
         })
@@ -83,11 +99,17 @@ def main() -> int:
     out = {
         "captured_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "source_manifest_url": OPENALEX_MANIFEST_URL,
-        "selection_strategy": "smallest_partitions_first",
+        "snapshot_date": manifest.get("date"),
+        "snapshot_format": manifest.get("format", "jsonl"),
+        "snapshot_total_works_records": manifest.get("record_count"),
+        "snapshot_total_compressed_bytes": manifest.get("content_length"),
+        "selection_strategy": f"smallest_partitions_first (min_records>={args.min_records})",
         "bucket": bucket_raw,
         "prefix": args.prefix,
         "download_seconds": elapsed,
         "total_compressed_bytes": sum(x["compressed_bytes"] for x in ingested),
+        "total_uncompressed_bytes": sum(x["uncompressed_bytes"] for x in ingested),
+        "total_manifest_records": sum(x["record_count_manifest"] or 0 for x in ingested),
         "objects": ingested,
     }
 
