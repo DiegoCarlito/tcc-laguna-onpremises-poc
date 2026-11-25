@@ -95,6 +95,7 @@ laguna-onpremises-poc/
 - **Smoke test S3A (`smoke_test_s3a.py`):** escrita e leitura Parquet em `s3a://clean-data/_smoke_test/parquet_check` concluídas em `8,129 s` (`3` registros) nos dois *Workers*.
 - **Ingestão (`ingest_openalex_subset.py`):** download de `2` partições do *snapshot* `2026-10-14` (`693` registros; `501,24 KB` comprimidos; `4,755 MB` descomprimidos) para `s3a://raw-data/works/subset` em `3,383 s`.
 - **ETL e validação (`etl_works.py` + `validate_output.py`):** materialização Parquet (Snappy) em `s3a://clean-data/works/clean` em `12,274 s` (`56,46 registros/s`; `0,387 MB/s`), preservando `693` registros únicos (`100%` de unicidade de `id`) e `51` colunas de nível superior.
+- **Consulta analítica (`sample_analytics.py`):** agregações Spark SQL sobre `s3a://clean-data/works/clean` (distribuição por `publication_year`, `type` e `primary_location.source` com soma de `cited_by_count`) concluídas em `17,482 s` (`632` artigos, `41` livros e demais tipologias).
 
 ## Observação Metodológica
 
