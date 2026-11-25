@@ -4,7 +4,7 @@ Módulo de regras de transformação da entidade Works.
 IMPORTANTE (Rigor Metodológico):
 As regras definitivas de seleção/remoção de atributos, tratamento de nulos,
 normalização de tipos e particionamento devem refletir o inventário oficial
-dos scripts do Projeto Laguna (Atividade A06 do TCC 2).
+dos scripts do Projeto Laguna (Atividade A08 do TCC 2).
 
 Esta implementação provê apenas uma transformação mínima neutra (validação de
 registros com identificador não nulo e deduplicação por 'id') para permitir

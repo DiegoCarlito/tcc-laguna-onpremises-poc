@@ -56,7 +56,7 @@ def infer_openalex_works_schema(spark: SparkSession, input_path: str, sample_row
     evitando colisões de tokens dinâmicos e caracteres inválidos em nomes de colunas Parquet.
 
     Nota metodológica (TCC 1 -> TCC 2): nesta fase de homologação neutra, a amostragem
-    de esquema integra a janela medida de ETL. Na etapa experimental do TCC 2 (Atividade A07),
+    de esquema integra a janela medida de ETL. Na etapa experimental do TCC 2 (Atividade A09),
     com o inventário oficial das colunas do Projeto Laguna consolidado, o esquema alvo será
     declarado estaticamente, eliminando a leitura prévia de amostragem no S3A.
     """
