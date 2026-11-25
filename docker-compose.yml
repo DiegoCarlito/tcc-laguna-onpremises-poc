@@ -16,7 +16,7 @@ services:
       - ./volumes/seaweedfs:/data
       - ./docker/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
     cpus: ${SEAWEEDFS_CPUS:-1.0}
-    mem_limit: ${SEAWEEDFS_MEM_LIMIT:-1g}
+    mem_limit: ${SEAWEEDFS_MEM_LIMIT:-512m}
     networks:
       - laguna-net
 
@@ -26,6 +26,7 @@ services:
       dockerfile: docker/spark/Dockerfile
     image: laguna-spark:3.5.3-s3a
     container_name: laguna-bucket-init
+    user: "0:0"
     depends_on:
       - seaweedfs
     environment:
@@ -36,7 +37,12 @@ services:
       S3_BUCKET_CLEAN: ${S3_BUCKET_CLEAN:-clean-data}
     volumes:
       - ./scripts:/opt/laguna/scripts:ro
-    command: ["python3", "/opt/laguna/scripts/init_buckets.py"]
+      - ./results:/opt/laguna/results
+      - ./volumes/spark-work:/opt/laguna/spark-work
+    command:
+      - bash
+      - -c
+      - "mkdir -p /opt/laguna/results /opt/laguna/spark-work/worker-1 /opt/laguna/spark-work/worker-2 && chmod -R 0777 /opt/laguna/results /opt/laguna/spark-work && python3 /opt/laguna/scripts/init_buckets.py"
     restart: "no"
     networks:
       - laguna-net
@@ -54,8 +60,10 @@ services:
       SPARK_MASTER_HOST: spark-master
       SPARK_MASTER_PORT: "7077"
       SPARK_MASTER_WEBUI_PORT: "8080"
+      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-128m}
+      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:-}
     cpus: ${SPARK_MASTER_CPUS:-1.0}
-    mem_limit: ${SPARK_MASTER_MEM_LIMIT:-1g}
+    mem_limit: ${SPARK_MASTER_MEM_LIMIT:-512m}
     networks:
       - laguna-net
 
@@ -69,12 +77,14 @@ services:
       spark://spark-master:7077
     environment:
       SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-2}
-      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-1536m}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-1g}
+      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-128m}
+      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:-}
       SPARK_LOCAL_DIRS: /opt/spark/work-local
     volumes:
       - ./volumes/spark-work/worker-1:/opt/spark/work-local
     cpus: ${SPARK_WORKER_CPUS:-2.0}
-    mem_limit: ${SPARK_WORKER_MEM_LIMIT:-2g}
+    mem_limit: ${SPARK_WORKER_MEM_LIMIT:-1536m}
     networks:
       - laguna-net
 
@@ -88,12 +98,14 @@ services:
       spark://spark-master:7077
     environment:
       SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:-2}
-      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-1536m}
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:-1g}
+      SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY:-128m}
+      SPARK_DAEMON_JAVA_OPTS: ${SPARK_DAEMON_JAVA_OPTS:-}
       SPARK_LOCAL_DIRS: /opt/spark/work-local
     volumes:
       - ./volumes/spark-work/worker-2:/opt/spark/work-local
     cpus: ${SPARK_WORKER_CPUS:-2.0}
-    mem_limit: ${SPARK_WORKER_MEM_LIMIT:-2g}
+    mem_limit: ${SPARK_WORKER_MEM_LIMIT:-1536m}
     networks:
       - laguna-net
 
@@ -113,6 +125,8 @@ services:
       S3_BUCKET_CLEAN: ${S3_BUCKET_CLEAN:-clean-data}
       SPARK_MASTER_URL: ${SPARK_MASTER_URL:-spark://spark-master:7077}
       SPARK_DRIVER_HOST: ${SPARK_DRIVER_HOST:-spark-driver}
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-512m}
+      SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:-512m}
     ports:
       - "4040:4040"
     volumes:
@@ -120,7 +134,7 @@ services:
       - ./scripts:/opt/laguna/scripts:ro
       - ./results:/opt/laguna/results
     cpus: ${SPARK_DRIVER_CPUS:-2.0}
-    mem_limit: ${SPARK_DRIVER_MEM_LIMIT:-2g}
+    mem_limit: ${SPARK_DRIVER_MEM_LIMIT:-1536m}
     networks:
       - laguna-net
 
