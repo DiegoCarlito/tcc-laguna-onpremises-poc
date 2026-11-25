@@ -2,10 +2,11 @@
 .env
 *.env.local
 
-# Dados, volumes Docker e resultados experimentais
+# Dados, volumes Docker e saídas efêmeras de benchmark
 volumes/
 data/
-results/
+results/etl_run_*.json
+results/*.csv
 *.parquet
 *.json.gz
 *.csv

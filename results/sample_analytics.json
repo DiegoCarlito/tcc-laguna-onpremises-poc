@@ -1,0 +1,139 @@
+{
+  "clean_path": "s3a://clean-data/works/clean",
+  "total_works": 693,
+  "by_publication_year": [
+    {
+      "publication_year": 1993,
+      "works_count": 29
+    },
+    {
+      "publication_year": 2010,
+      "works_count": 28
+    },
+    {
+      "publication_year": 1989,
+      "works_count": 22
+    },
+    {
+      "publication_year": 1992,
+      "works_count": 21
+    },
+    {
+      "publication_year": 1991,
+      "works_count": 21
+    },
+    {
+      "publication_year": 1969,
+      "works_count": 21
+    },
+    {
+      "publication_year": 1994,
+      "works_count": 20
+    },
+    {
+      "publication_year": 1986,
+      "works_count": 20
+    },
+    {
+      "publication_year": 1965,
+      "works_count": 20
+    },
+    {
+      "publication_year": 1990,
+      "works_count": 19
+    }
+  ],
+  "by_type": [
+    {
+      "type": "article",
+      "works_count": 632
+    },
+    {
+      "type": "book",
+      "works_count": 41
+    },
+    {
+      "type": "dissertation",
+      "works_count": 9
+    },
+    {
+      "type": "other",
+      "works_count": 7
+    },
+    {
+      "type": "report",
+      "works_count": 2
+    },
+    {
+      "type": "letter",
+      "works_count": 1
+    },
+    {
+      "type": "book-chapter",
+      "works_count": 1
+    }
+  ],
+  "top_sources": [
+    {
+      "source_id": "https://openalex.org/S4210219219",
+      "source_name": "WT Tijdschrift over de geschiedenis van de Vlaamse beweging",
+      "works_count": 470,
+      "total_citations": 45
+    },
+    {
+      "source_id": "https://openalex.org/S7407058125",
+      "source_name": "Social Education",
+      "works_count": 21,
+      "total_citations": 57
+    },
+    {
+      "source_id": "https://openalex.org/S4306525036",
+      "source_name": "PubMed",
+      "works_count": 21,
+      "total_citations": 3
+    },
+    {
+      "source_id": "https://openalex.org/S28074187",
+      "source_name": "Rivista di psichiatria",
+      "works_count": 13,
+      "total_citations": 5
+    },
+    {
+      "source_id": "https://openalex.org/S4306400562",
+      "source_name": "Zenodo (CERN European Organization for Nuclear Research)",
+      "works_count": 13,
+      "total_citations": 4
+    },
+    {
+      "source_id": "https://openalex.org/S4306464182",
+      "source_name": "University of Minnesota Press eBooks",
+      "works_count": 12,
+      "total_citations": 1
+    },
+    {
+      "source_id": "https://openalex.org/S4306464162",
+      "source_name": "University of Georgia Press eBooks",
+      "works_count": 11,
+      "total_citations": 5
+    },
+    {
+      "source_id": "https://openalex.org/S4306401996",
+      "source_name": "Social Science Open Access Repository (GESIS – Leibniz Institute for the Social Sciences)",
+      "works_count": 9,
+      "total_citations": 4
+    },
+    {
+      "source_id": "https://openalex.org/S4210238074",
+      "source_name": "International Journal of Research Publications",
+      "works_count": 8,
+      "total_citations": 1
+    },
+    {
+      "source_id": "https://openalex.org/S2754753105",
+      "source_name": "Recenti Progressi in Medicina",
+      "works_count": 6,
+      "total_citations": 0
+    }
+  ],
+  "execution_time_seconds": 17.482
+}

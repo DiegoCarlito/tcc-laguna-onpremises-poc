@@ -1,0 +1,27 @@
+{
+  "captured_at_utc": "2026-11-25T02:37:45.448471+00:00",
+  "os": {
+    "system": "Linux",
+    "release": "6.8.0-151-generic",
+    "version": "#151-Ubuntu SMP PREEMPT_DYNAMIC Wed Nov 11 01:28:36 UTC 2026",
+    "machine": "x86_64",
+    "pretty_name": "Ubuntu 24.04.5 LTS"
+  },
+  "hardware": {
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+    "cpu_physical_cores": "4",
+    "cpu_logical_cores": 8,
+    "memory_total": "7.5Gi",
+    "workspace_filesystem": "Filesystem     Type  Size  Used Avail Use% Mounted on\n/dev/nvme0n1p2 ext4  468G  301G  144G  68% /",
+    "block_devices": "NAME      SIZE ROTA TRAN   MODEL\nsda     223.6G    0 sata   KINGSTON SA400S37240G\nnvme0n1 476.9G    0 nvme   WDC PC SN530 SDBPNPZ-512G-1114"
+  },
+  "runtime": {
+    "docker_version": "Docker version 27.2.0, build 3ab4256",
+    "compose_version": "Docker Compose version v2.29.2",
+    "git_commit": "e86b53fde452a3fd5478f0e3bdc8590d1708c4b4",
+    "image_digests": [
+      "laguna-spark:3.5.3-s3a <none>",
+      "chrislusf/seaweedfs:3.79 sha256:21425305e04b355904ef350ff75a4e81b8afc5124f63e0485b946164b58562d3"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "captured_at_utc": "2026-11-25T02:15:19.334660+00:00",
+  "source_manifest_url": "https://openalex.s3.amazonaws.com/data/jsonl/works/manifest.json",
+  "snapshot_date": "2026-10-14",
+  "snapshot_format": "jsonl",
+  "snapshot_total_works_records": 464765485,
+  "snapshot_total_compressed_bytes": 675298563638,
+  "selection_strategy": "smallest_partitions_first (min_records>=200)",
+  "bucket": "raw-data",
+  "prefix": "works/subset",
+  "download_seconds": 3.383,
+  "total_compressed_bytes": 501241,
+  "total_uncompressed_bytes": 4986217,
+  "total_manifest_records": 693,
+  "objects": [
+    {
+      "source_url": "https://openalex.s3.amazonaws.com/data/jsonl/works/updated_date=2016-06-24/part_0000.gz",
+      "s3_key": "works/subset/updated_date=2016-06-24/part_0000.gz",
+      "compressed_bytes": 224592,
+      "uncompressed_bytes": 3079921,
+      "record_count_manifest": 489,
+      "sha256": "bb84ca409a80831115125a46e63c5f60264172746bc8edd2c0451f47615bc797"
+    },
+    {
+      "source_url": "https://openalex.s3.amazonaws.com/data/jsonl/works/updated_date=2025-07-24/part_0000.gz",
+      "s3_key": "works/subset/updated_date=2025-07-24/part_0000.gz",
+      "compressed_bytes": 276649,
+      "uncompressed_bytes": 1906296,
+      "record_count_manifest": 204,
+      "sha256": "3bb4e13dfe19343797cd1c2926d38055e163347e865f0dffbc4115c5e3242648"
+    }
+  ]
+}
