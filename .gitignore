@@ -1,0 +1,22 @@
+# Ambiente local e segredos
+.env
+*.env.local
+
+# Dados, volumes Docker e resultados experimentais
+volumes/
+data/
+results/
+*.parquet
+*.json.gz
+*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Logs e arquivos temporários
+*.log
+.DS_Store
