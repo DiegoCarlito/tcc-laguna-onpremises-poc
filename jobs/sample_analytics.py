@@ -3,6 +3,8 @@
 Consulta analítica de exemplo em Spark SQL sobre a camada clean-data (Parquet),
 demonstrando o consumo dos dados processados da entidade Works da OpenAlex.
 """
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -96,7 +98,9 @@ def main() -> int:
 
         summary["execution_time_seconds"] = round(time.perf_counter() - t0, 3)
 
-        os.makedirs(os.path.dirname(args.report_out), exist_ok=True)
+        out_dir = os.path.dirname(args.report_out)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         with open(args.report_out, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2, ensure_ascii=False)
 

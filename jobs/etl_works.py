@@ -5,6 +5,8 @@ Lê recortes JSONL.gz do bucket raw-data via S3A, aplica as regras modulares em
 jobs/rules.py e materializa a saída em formato Apache Parquet no bucket clean-data,
 registrando exclusivamente o tempo de processamento (separado do download).
 """
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -52,6 +54,11 @@ def infer_openalex_works_schema(spark: SparkSession, input_path: str, sample_row
     Infere o esquema da entidade Works preservando todos os atributos e tipando
     explicitamente 'abstract_inverted_index' como MapType(StringType(), ArrayType(IntegerType())),
     evitando colisões de tokens dinâmicos e caracteres inválidos em nomes de colunas Parquet.
+
+    Nota metodológica (TCC 1 -> TCC 2): nesta fase de homologação neutra, a amostragem
+    de esquema integra a janela medida de ETL. Na etapa experimental do TCC 2 (Atividade A07),
+    com o inventário oficial das colunas do Projeto Laguna consolidado, o esquema alvo será
+    declarado estaticamente, eliminando a leitura prévia de amostragem no S3A.
     """
     raw_sample = (
         spark.read.option("recursiveFileLookup", "true")
@@ -144,7 +151,9 @@ def main() -> int:
             "output_columns": df_out.columns,
         }
 
-        os.makedirs(os.path.dirname(args.metrics_out), exist_ok=True)
+        out_dir = os.path.dirname(args.metrics_out)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         with open(args.metrics_out, "w", encoding="utf-8") as f:
             json.dump(metrics, f, indent=2, ensure_ascii=False)
 

@@ -1,4 +1,6 @@
 """Fábrica padronizada de SparkSession configurada para S3A (SeaweedFS)."""
+from __future__ import annotations
+
 import os
 from pyspark.sql import SparkSession
 
@@ -9,6 +11,8 @@ def build_spark_session(app_name: str) -> SparkSession:
     secret_key = os.environ.get("S3_SECRET_KEY", "laguna_poc_secret")
     master_url = os.environ.get("SPARK_MASTER_URL", "spark://spark-master:7077")
     driver_host = os.environ.get("SPARK_DRIVER_HOST", "spark-driver")
+    driver_port = os.environ.get("SPARK_DRIVER_PORT", "7078")
+    blockmanager_port = os.environ.get("SPARK_BLOCKMANAGER_PORT", "7079")
     driver_memory = os.environ.get("SPARK_DRIVER_MEMORY", "512m")
     executor_memory = os.environ.get("SPARK_EXECUTOR_MEMORY", "512m")
 
@@ -17,6 +21,8 @@ def build_spark_session(app_name: str) -> SparkSession:
         .appName(app_name)
         .master(master_url)
         .config("spark.driver.host", driver_host)
+        .config("spark.driver.port", driver_port)
+        .config("spark.blockManager.port", blockmanager_port)
         .config("spark.driver.memory", driver_memory)
         .config("spark.executor.memory", executor_memory)
         .config("spark.sql.caseSensitive", "true")

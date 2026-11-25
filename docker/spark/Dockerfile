@@ -1,6 +1,7 @@
 # Imagem versionada Apache Spark 3.5.3 (Python 3) com conector Hadoop-AWS (S3A)
 # Versões compatíveis com Hadoop 3.3.4 empacotado no Apache Spark 3.5.3
-FROM apache/spark:3.5.3-python3
+ARG SPARK_IMAGE=apache/spark:3.5.3-python3
+FROM ${SPARK_IMAGE}
 
 USER root
 

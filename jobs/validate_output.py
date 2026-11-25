@@ -4,6 +4,8 @@ Valida a conformidade funcional das saídas materializadas em clean-data:
 contagem de registros, unicidade de identificadores, esquema e consulta Spark SQL.
 Quando um caminho de referência é informado, compara diretamente ambos os conjuntos.
 """
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -59,7 +61,9 @@ def main() -> int:
                 ),
             }
 
-        os.makedirs(os.path.dirname(args.report_out), exist_ok=True)
+        out_dir = os.path.dirname(args.report_out)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         with open(args.report_out, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
 

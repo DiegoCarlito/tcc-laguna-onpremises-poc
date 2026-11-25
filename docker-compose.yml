@@ -24,6 +24,8 @@ services:
     build:
       context: .
       dockerfile: docker/spark/Dockerfile
+      args:
+        SPARK_IMAGE: ${SPARK_IMAGE:-apache/spark:3.5.3-python3}
     image: laguna-spark:3.5.3-s3a
     container_name: laguna-bucket-init
     user: "0:0"
@@ -125,6 +127,8 @@ services:
       S3_BUCKET_CLEAN: ${S3_BUCKET_CLEAN:-clean-data}
       SPARK_MASTER_URL: ${SPARK_MASTER_URL:-spark://spark-master:7077}
       SPARK_DRIVER_HOST: ${SPARK_DRIVER_HOST:-spark-driver}
+      SPARK_DRIVER_PORT: ${SPARK_DRIVER_PORT:-7078}
+      SPARK_BLOCKMANAGER_PORT: ${SPARK_BLOCKMANAGER_PORT:-7079}
       SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-512m}
       SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:-512m}
     ports:

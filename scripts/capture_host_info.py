@@ -4,20 +4,40 @@ Captura o manifesto de reprodutibilidade do hospedeiro:
 SO, versão do kernel, CPU, RAM, discos (tipo/modelo), Docker, Docker Compose
 e digests imutáveis das imagens utilizadas.
 """
+from __future__ import annotations
+
 import argparse
 import datetime
 import json
 import os
 import platform
+import re
 import subprocess
 
 
-def run_cmd(cmd: list[str]) -> str:
+def run_cmd(cmd: list[str], timeout: int = 15) -> str:
     try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True, timeout=15)
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True, timeout=timeout)
         return out.strip()
     except Exception as exc:
         return f"unavailable ({exc})"
+
+
+def collect_image_digests() -> list[str]:
+    lines = [
+        line for line in run_cmd([
+            "docker", "images", "--digests", "--no-trunc",
+            "--format", "{{.Repository}}:{{.Tag}} digest={{.Digest}} id={{.ID}}"
+        ]).splitlines()
+        if any(k in line for k in ("spark", "seaweedfs", "laguna"))
+    ]
+    base_img = os.environ.get("SPARK_IMAGE", "apache/spark:3.5.3-python3")
+    if not any(base_img in line for line in lines):
+        insp = run_cmd(["docker", "buildx", "imagetools", "inspect", base_img], timeout=8)
+        m = re.search(r"^Digest:\s*(sha256:[0-9a-f]+)", insp, re.M)
+        if m:
+            lines.insert(0, f"{base_img} digest={m.group(1)}")
+    return lines
 
 
 def main() -> int:
@@ -51,21 +71,18 @@ def main() -> int:
             "docker_version": run_cmd(["docker", "--version"]),
             "compose_version": run_cmd(["docker", "compose", "version"]),
             "git_commit": run_cmd(["git", "-C", repo_root, "rev-parse", "HEAD"]),
-            "image_digests": [
-                line for line in run_cmd([
-                    "docker", "images", "--digests",
-                    "--format", "{{.Repository}}:{{.Tag}} {{.Digest}}"
-                ]).splitlines()
-                if any(k in line for k in ("spark", "seaweedfs", "laguna"))
-            ],
+            "image_digests": collect_image_digests(),
         },
     }
 
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
-    with open(args.output, "w", encoding="utf-8") as f:
+    out_Path = args.output
+    out_dir = os.path.dirname(out_Path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    with open(out_Path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
-    print(f"[host-manifest] Salvo em {args.output}")
+    print(f"[host-manifest] Salvo em {out_Path}")
     return 0
 
 

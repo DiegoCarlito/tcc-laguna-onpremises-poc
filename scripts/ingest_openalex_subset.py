@@ -5,6 +5,8 @@ para o bucket raw-data do armazenamento S3 local em modo streaming (chunks),
 evitando consumo excessivo de memória RAM em partições grandes e registrando
 manifesto de reprodutibilidade (data, objetos, SHA-256, bytes e tempo).
 """
+from __future__ import annotations
+
 import argparse
 import datetime
 import gzip
@@ -145,7 +147,9 @@ def main() -> int:
         "objects": ingested,
     }
 
-    os.makedirs(os.path.dirname(args.output_manifest), exist_ok=True)
+    out_dir = os.path.dirname(args.output_manifest)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
     with open(args.output_manifest, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
 

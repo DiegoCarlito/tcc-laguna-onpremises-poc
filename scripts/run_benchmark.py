@@ -5,6 +5,8 @@ de saída/temporários entre rodadas, amostrando uso de CPU (%), pico de
 memória RAM (GB e %) e I/O de disco dos contêineres via `docker stats`,
 e consolidando todas as métricas em CSV para análise experimental.
 """
+from __future__ import annotations
+
 import argparse
 import csv
 import json
@@ -14,6 +16,7 @@ import subprocess
 import threading
 import time
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONTAINERS = [
     "laguna-seaweedfs",
     "laguna-spark-master",
@@ -69,6 +72,7 @@ def reset_between_runs(output_prefix: str, drop_os_caches: bool) -> None:
     )
     subprocess.run(
         ["docker", "compose", "exec", "-T", "spark-driver", "python3", "-c", cleanup_code],
+        cwd=REPO_ROOT,
         check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -79,6 +83,7 @@ def reset_between_runs(output_prefix: str, drop_os_caches: bool) -> None:
                 "docker", "compose", "exec", "-T", worker,
                 "bash", "-c", "rm -rf /opt/spark/work-local/blockmgr-* /opt/spark/work-local/spark-*",
             ],
+            cwd=REPO_ROOT,
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -146,7 +151,9 @@ def main() -> int:
     args = parser.parse_args()
 
     host_ram_gib = get_host_total_ram_gib()
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
+    out_dir = os.path.dirname(args.output)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
     rows = []
 
     for run_id in range(1, args.runs + 1):
@@ -159,7 +166,7 @@ def main() -> int:
         monitor.start()
 
         metrics_file = f"/opt/laguna/results/etl_run_{run_id}.json"
-        host_metrics_file = f"results/etl_run_{run_id}.json"
+        host_metrics_file = os.path.join(REPO_ROOT, "results", f"etl_run_{run_id}.json")
 
         driver_mem = os.environ.get("SPARK_DRIVER_MEMORY", "512m")
         executor_mem = os.environ.get("SPARK_EXECUTOR_MEMORY", "512m")
@@ -175,6 +182,7 @@ def main() -> int:
                 "--output-prefix", args.output_prefix,
                 "--metrics-out", metrics_file,
             ],
+            cwd=REPO_ROOT,
             check=False,
         )
 
