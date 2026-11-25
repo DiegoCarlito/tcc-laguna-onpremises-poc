@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""
+Ingere um recorte controlado da entidade Works do snapshot público da OpenAlex
+para o bucket raw-data do armazenamento S3 local, registrando manifesto de
+reprodutibilidade (data, objetos, SHA-256, bytes comprimidos e tempo de download).
+"""
+import argparse
+import datetime
+import hashlib
+import json
+import os
+import sys
+import time
+import boto3
+import requests
+
+OPENALEX_MANIFEST_URL = "https://openalex.s3.amazonaws.com/data/works/manifest"
+OPENALEX_BASE_HTTPS = "https://openalex.s3.amazonaws.com/"
+
+
+def s3_uri_to_https(uri: str) -> str:
+    if uri.startswith("s3://openalex/"):
+        return OPENALEX_BASE_HTTPS + uri[len("s3://openalex/"):]
+    return uri
+
+
+def fetch_manifest() -> dict:
+    resp = requests.get(OPENALEX_MANIFEST_URL, timeout=60)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Ingestão controlada de recorte Works da OpenAlex")
+    parser.add_argument("--limit", type=int, default=1, help="Número de partições .gz a baixar")
+    parser.add_argument("--prefix", default="works/subset", help="Prefixo de destino no bucket raw-data")
+    parser.add_argument("--output-manifest", default="/opt/laguna/results/subset_manifest.json")
+    args = parser.parse_args()
+
+    endpoint = os.environ.get("S3_ENDPOINT", "http://seaweedfs:8333")
+    access_key = os.environ.get("S3_ACCESS_KEY", "laguna_poc_access")
+    secret_key = os.environ.get("S3_SECRET_KEY", "laguna_poc_secret")
+    bucket_raw = os.environ.get("S3_BUCKET_RAW", "raw-data")
+
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=endpoint,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name="us-east-1",
+    )
+
+    print(f"[ingest] Baixando manifesto oficial: {OPENALEX_MANIFEST_URL}")
+    manifest = fetch_manifest()
+    entries = manifest.get("entries", [])
+    # Ordena por tamanho crescente para testes progressivos reprodutíveis
+    entries_sorted = sorted(entries, key=lambda e: e.get("meta", {}).get("content_length", 0))
+    selected = entries_sorted[: args.limit]
+
+    t0 = time.perf_counter()
+    ingested = []
+    for idx, entry in enumerate(selected, 1):
+        src_url = s3_uri_to_https(entry["url"])
+        rel_name = entry["url"].split("data/works/", 1)[-1]
+        dest_key = f"{args.prefix}/{rel_name}"
+
+        print(f"[ingest] ({idx}/{len(selected)}) Baixando {src_url} ...")
+        r = requests.get(src_url, timeout=300)
+        r.raise_for_status()
+        payload = r.content
+        sha256 = hashlib.sha256(payload).hexdigest()
+
+        s3.put_object(Bucket=bucket_raw, Key=dest_key, Body=payload)
+        ingested.append({
+            "source_url": src_url,
+            "s3_key": dest_key,
+            "compressed_bytes": len(payload),
+            "record_count_manifest": entry.get("meta", {}).get("record_count"),
+            "sha256": sha256,
+        })
+
+    elapsed = round(time.perf_counter() - t0, 3)
+    out = {
+        "captured_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "source_manifest_url": OPENALEX_MANIFEST_URL,
+        "selection_strategy": "smallest_partitions_first",
+        "bucket": bucket_raw,
+        "prefix": args.prefix,
+        "download_seconds": elapsed,
+        "total_compressed_bytes": sum(x["compressed_bytes"] for x in ingested),
+        "objects": ingested,
+    }
+
+    os.makedirs(os.path.dirname(args.output_manifest), exist_ok=True)
+    with open(args.output_manifest, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2, ensure_ascii=False)
+
+    print(f"[ingest] Concluído em {elapsed}s ({len(ingested)} objeto(s)). Manifesto salvo em {args.output_manifest}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
